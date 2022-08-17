@@ -11,6 +11,10 @@ st.markdown("""
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.3.1/dist/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
 """, unsafe_allow_html=True)
 
+st.markdown("""
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.2/css/all.min.css" integrity="sha512-1sCRPdkRXhBV2PBLUdRb4tMg1w2YPf37qatUFeS7zlBy7jJI8Lf4VHwWfZZfpXtYSLy85pkm9GaYVYMfw5BC1A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+""", unsafe_allow_html=True)
+
 with open('template/style.css') as f:
     st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
 
@@ -42,22 +46,3 @@ else:
         coin=coin,
         action='dashboard'
     )
-
-# footer="""<style>
-#   .footer {
-#     position: fixed;
-#     left: 0;
-#     bottom: 0;
-#     width: 100%;
-#     background-color: white;
-#     color: black;
-#     text-align: center;
-#   }
-#   </style>
-#   <div class="footer">
-#   <p class="p_footer">Data sources: data is obtained from cryptocompare & coinmarketcap by using free APIs. 
-#   Python's libraries and site-packages used for the developement: streamlit, numpy, pandas, plotly, cryptocompare, BeautifulSoup, requests, json, datetime, Image, etc.
-#   Dashboard is developed by <a style='display: block; text-align: center;' href="https://www.linkedin.com/in/thu-nguyen-bbb857222/" target="_blank">Thu Nguyen</a></p>
-#   </div>
-#   """
-# st.markdown(footer,unsafe_allow_html=True)

@@ -1,5 +1,4 @@
 # setup
-# from matplotlib.pyplot import margins
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -143,6 +142,87 @@ def plot_1year(coin, margin_setup, C, sma_no, ema_no):
     return figprice, figvol
 
 
+# Function to retrieve data for market indecators
+def get_signal(from_sym):
+    
+    url = 'https://min-api.cryptocompare.com/data/tradingsignals/intotheblock/latest'
+    
+    parameters = {'fsym': from_sym}    
+    # response comes as json
+    response = requests.get(url, params=parameters)   
+    
+    data = response.json()['Data'] 
+    
+    return data
+
+
+# Funrtion to plot indecator: in The Money
+def in_the_money(data_indecators, margin_setup1, w, h):
+    fig = go.Figure(go.Indicator(
+        domain = {'x': [0, 1], 'y': [0, 1]},
+        value = round(data_indecators['inOutVar']['score'],2),
+        mode = "gauge+number",
+        gauge = {'axis': {'range': [0, 1]},
+                'bar': {'color': "darkblue"},
+                'steps' : [
+                    {'range': [0, data_indecators['inOutVar']['score_threshold_bearish']], 'color': "red"},
+                    {'range': [data_indecators['inOutVar']['score_threshold_bearish'], 
+                               data_indecators['inOutVar']['score_threshold_bullish']], 'color': '#F7E31D'},
+                    {'range': [data_indecators['inOutVar']['score_threshold_bullish'], 1], 'color': "green"}]}))
+    fig.update_layout(width=w, height=h, hovermode='closest', margin=margin_setup1, font=dict(size=20))
+    return fig
+
+# Funrtion to plot indecator: Net Network Growth
+def network_growth(data_indecators, margin_setup1, w, h):
+    fig = go.Figure(go.Indicator(
+        domain = {'x': [0, 1], 'y': [0, 1]},
+        value = round(data_indecators['addressesNetGrowth']['score'],2),
+        mode = "gauge+number",
+        gauge = {'axis': {'range': [0, 1]},
+                'bar': {'color': "darkblue"},
+                'steps' : [
+                    {'range': [0, data_indecators['addressesNetGrowth']['score_threshold_bearish']], 'color': "red"},
+                    {'range': [data_indecators['addressesNetGrowth']['score_threshold_bearish'], 
+                               data_indecators['addressesNetGrowth']['score_threshold_bullish']], 'color': '#F7E31D'},
+                    {'range': [data_indecators['addressesNetGrowth']['score_threshold_bullish'], 1], 'color': "green"}]}))
+    fig.update_layout(width=w, height=h, hovermode='closest', margin=margin_setup1, font=dict(size=20))
+    return fig
+
+# Funrtion to plot indecator: Concentration
+def concentration(data_indecators, margin_setup1, w, h):
+    fig = go.Figure(go.Indicator(
+        domain = {'x': [0, 1], 'y': [0, 1]},
+        value = round(data_indecators['concentrationVar']['score'],2),
+        mode = "gauge+number",
+        gauge = {'axis': {'range': [0, 1]},
+                'bar': {'color': "darkblue"},
+                'steps' : [
+                    {'range': [0, data_indecators['concentrationVar']['score_threshold_bearish']], 'color': "red"},
+                    {'range': [data_indecators['concentrationVar']['score_threshold_bearish'], 
+                               data_indecators['concentrationVar']['score_threshold_bullish']], 'color': '#F7E31D'},
+                    {'range': [data_indecators['concentrationVar']['score_threshold_bullish'], 1], 'color': "green"}]}))
+    fig.update_layout(width=w, height=h, hovermode='closest', margin=margin_setup1, font=dict(size=20))
+    return fig
+
+# Funrtion to plot indecator: Large Transactions
+def large_transaction(data_indecators, margin_setup1, w, h):
+    fig = go.Figure(go.Indicator(
+        domain = {'x': [0, 1], 'y': [0, 1]},
+        value = round(data_indecators['largetxsVar']['score'],2),
+        mode = "gauge+number",
+        gauge = {'axis': {'range': [0, 1]},
+                'bar': {'color': "darkblue"},
+                'steps' : [
+                    {'range': [0, data_indecators['largetxsVar']['score_threshold_bearish']], 'color': "red"},
+                    {'range': [data_indecators['largetxsVar']['score_threshold_bearish'], 
+                               data_indecators['largetxsVar']['score_threshold_bullish']], 'color': '#F7E31D'},
+                    {'range': [data_indecators['largetxsVar']['score_threshold_bullish'], 1], 'color': "green"}]}))
+    fig.update_layout(width=w, height=h, hovermode='closest', margin=margin_setup1, font=dict(size=20))
+    return fig
+
+
+
+### MAIN FUNCTION
 def dashboard(coin: str):
     #### download data from coinmarketcap
     data = soup.find('script', id='__NEXT_DATA__', type='application/json')
@@ -153,29 +233,32 @@ def dashboard(coin: str):
     for i in listings[1:]:
         coin_symbol = i[[k for k, j in enumerate(listings[0]['keysArr']) if j == 'symbol'][0]]
         if coin_symbol==coin:
-            coin_vol24h = '$' + f"{round(i[[k for k, j in enumerate(listings[0]['keysArr']) if j == 'quote.USD.volume24h'][0]],1):,}"        
+            coin_vol24h = i[[k for k, j in enumerate(listings[0]['keysArr']) if j == 'quote.USD.volume24h'][0]]
             coin_cap = i[[k for k, j in enumerate(listings[0]['keysArr']) if j == market_cap_name][0]]
             coin_cap_pct = round(i[[k for k, j in enumerate(listings[0]['keysArr']) if j == 'quote.USD.dominance'][0]],3)
             break
+    coin_vol24h = '$'+str(f"{round(coin_vol24h/1e6,3):,}" + 'M')
     coin_cap_pct=str(f"{coin_cap_pct}" + "%")
     coin_cap='$'+str(f"{round(coin_cap/1e9,3):,}" + 'B')
 
     #----infor part
-    pricecoin='$'+str(f"{cc.get_price(coin,currency='USD')[coin]['USD']:,}")
-    change24h=str(f"{round(cc.get_avg(coin, currency='USD')['CHANGEPCT24HOUR'], 3):,}") + ' %'
-    highprice='$'+str(f"{cc.get_avg(coin, currency='USD')['HIGH24HOUR']:,}")
-    lowprice='$'+ str(f"{cc.get_avg(coin, currency='USD')['LOW24HOUR']:,}")
-    volume24h =coin_vol24h
+    coin_data = cc.get_avg(coin, currency='USD')
+    pricecoin ='$'+str(f"{coin_data['PRICE']:,}")
+    change24h = str(f"{round(coin_data['CHANGEPCT24HOUR'], 3):,}")
+    change24hpct=str(f"{round(coin_data['CHANGEPCT24HOUR'], 3):,}") + ' %'
+    openprice='$'+str(f"{coin_data['OPEN24HOUR']:,}")
+    highprice='$'+str(f"{coin_data['HIGH24HOUR']:,}")
+    lowprice='$'+ str(f"{coin_data['LOW24HOUR']:,}")
 
     # Introduction:
     icon, sym_alg, price, vol, cap, cap_pct = st.columns([1,1,1,1,1,1])
     img_path = './icons/'+ coin + '.jpg'
     icon.image(Image.open(img_path))
     
-    sym_alg.text('Symbol:' + coin)
+    sym_alg.text('Symbol: ' + coin)
     
     coin_list=cc.get_coin_list()
-    sym_alg.text('Algo:' + coin_list[coin]['Algorithm'])
+    sym_alg.text('Algo: ' + coin_list[coin]['Algorithm'])
     
 
     price.metric(label='Price', value= pricecoin, delta=change24h)
@@ -198,21 +281,22 @@ def dashboard(coin: str):
 
     infor, pair = st.columns(2)
     
-    infordata=pd.DataFrame({'Information':['Price','Change 24h','Highest price 24h','Lowest price 24h','Volume 24h','Coin market cap','Total market cap proportion'],
-    'Value':[pricecoin,change24h,highprice,lowprice,volume24h,coin_cap,coin_cap_pct]})
+    infordata=pd.DataFrame({'Information':['Price','Change 24h','Change 24h (%)', 'Open price','Highest price 24h','Lowest price 24h'],
+    'Value':[pricecoin,change24h,change24hpct, openprice, highprice,lowprice]})
     infor.subheader(coin + ' Price Statistics')
     infor.table(infordata)
     
     #----pair part:
-    currencyunit=np.setdiff1d(coinlist, coin)
+    currencyunit = np.setdiff1d(coinlist, coin)
     Pairs=[]
     Prices=[]
-    for i in range(7):
+    for i in range(6):
         Pairs.append(coin+'/'+currencyunit[i])
         Prices.append(f"{round(cc.get_price(coin,currency=currencyunit[i])[coin][currencyunit[i]],2):,}")
     pairprice=pd.DataFrame({'Pairs':Pairs,'Price':Prices})
     pair.subheader(coin + ' Price Pairs')
     pair.table(pairprice)
+
 
     # Chart
     title="Historical Data of " + coin
@@ -255,3 +339,34 @@ def dashboard(coin: str):
         """
     , unsafe_allow_html=True)
     st.plotly_chart(figvol,use_container_width=True)
+
+    ### plot indecators: Net Network Growth, in The Money, Concentration, Large Transactions
+    margin_setup1 = dict(l=2, r=2, t=2, b=2)
+    data_indecators = get_signal(coin)
+    fig_network_gr = network_growth(data_indecators, margin_setup1, 400, 200)
+    fig_inthe_money = in_the_money(data_indecators, margin_setup1, 400, 200)
+
+    fig_concentration = concentration(data_indecators, margin_setup1, 400, 200)
+    fig_large_trans = large_transaction(data_indecators, margin_setup1, 400, 200)
+    
+    st.markdown(
+        """
+        <h1>Sinal Information</h2>
+        """
+    , unsafe_allow_html=True)
+
+    network , large_trans, money , concentra = st.columns(4)
+    # network , large_trans = st.columns(2)
+    network.subheader('Net Network Growth')
+    network.plotly_chart(fig_network_gr, use_container_width=True)
+
+    large_trans.subheader('Large Transactions')
+    large_trans.plotly_chart(fig_large_trans, use_container_width=True)
+
+    # money , concentra = st.columns(2)
+    money.subheader('In The Money')
+    money.plotly_chart(fig_inthe_money, use_container_width=True)
+
+    concentra.subheader('Concentration')
+    concentra.plotly_chart(fig_concentration, use_container_width=True)
+    

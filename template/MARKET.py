@@ -10,6 +10,8 @@ import cryptocompare as cc
 from bs4 import BeautifulSoup
 import requests
 import json
+import base64
+import os
 # import matplotlib.pyplot as plt
 # from requests import Request, Session
 # import time
@@ -33,7 +35,7 @@ ccobj=cc.cryptocompare._set_api_key_parameter(api_key)
 newlist='https://pro-api.coinmarketcap.com/v1/cryptocurrency/listings/new'
 
 
-### FOr downloading data from CoinMarketCap
+### For downloading data from CoinMarketCap
 cmc = requests.get('https://coinmarketcap.com')
 soup = BeautifulSoup(cmc.content, 'html.parser')
 
@@ -43,9 +45,23 @@ soup_exch = BeautifulSoup(cmc_exch.content, 'html.parser')
 cmc_gain_lose = requests.get('https://coinmarketcap.com/gainers-losers/')
 soup_gain_lose = BeautifulSoup(cmc_gain_lose.content, 'html.parser')
 
+def render_diff(diff, is_pct):
+  if diff > 0:
+    if is_pct:
+      return f'''<td class='text-success'><i class="fa-solid fa-caret-up mr-1"></i>{abs(diff)}%</td>'''
+    else:
+      return f'''<td class='text-success'><i class="fa-solid fa-caret-up mr-1"></i>{abs(diff)}</td>'''
+  if diff < 0:
+    if is_pct:
+      return f'''<td class='text-danger'><i class="fa-solid fa-caret-down mr-1"></i>{abs(diff)}%</td>'''
+    else:
+      return f'''<td class='text-danger'><i class="fa-solid fa-caret-down mr-1"></i>{abs(diff)}</td>'''
+  return f"<td>{diff}</td>"
+
 
 def market():
   margin_setup = dict(l=20, r=20, t=40, b=20)
+  icon_folder = os.path.join(os.path.dirname(__file__), "../coin-icons/")
 
   # title----------------------#
   # st.title('Crypto Analysis Dashboard')
@@ -75,9 +91,9 @@ def market():
   marketNo.metric(label='Markets', value= str(f"{(market_info['numMarkets']):,}"))
   exchange.metric(label='Active exchanges', value= str(f"{(market_info['activeExchanges']):,}"))
   
-  marketcap_value = '$'+ str(f"{round(market_info['marketCap'],1):,}")
+  marketcap_value = '$'+str(f"{round(market_info['marketCap']/1e9,3):,}" + 'B')
   marketcap_delta = f"{round(market_info['marketCapChange'],3)}"+'%'
-  totalVolme_value = '$' + str(f"{round(market_info['totalVol'],1):,}")
+  totalVolme_value = '$'+str(f"{round(market_info['totalVol']/1e6,3):,}" + 'M')
 
   marketcap.metric(label='Market cap', value=marketcap_value, delta=marketcap_delta)
   volumne.metric(label='Volume 24h', value=totalVolme_value)
@@ -106,8 +122,8 @@ def market():
     Directvol.append('$'+ str(f"{round(cc.get_avg(coin, currency='USD')['TOPTIERVOLUME24HOURTO']/1e6,2):,}")+ ' M')
     high.append('$'+str(f"{cc.get_avg(coin, currency='USD')['HIGH24HOUR']:,}"))
     low.append('$'+ str(f"{cc.get_avg(coin, currency='USD')['LOW24HOUR']:,}"))
-    change24h.append(f"{round(cc.get_avg(coin, currency='USD')['CHANGE24HOUR'], 4):,}")
-    change24hpct.append(str(f"{round(cc.get_avg(coin, currency='USD')['CHANGEPCT24HOUR'], 2):,}") + ' %')
+    change24h.append(round(cc.get_avg(coin, currency='USD')['CHANGE24HOUR'], 4))
+    change24hpct.append(round(cc.get_avg(coin, currency='USD')['CHANGEPCT24HOUR'], 2))
     
     count+=1
 
@@ -115,7 +131,7 @@ def market():
       <thead>
           <tr>
               <th scope="col">#</th>
-              <th scope="col">Coin</th>
+              <th class="text-left pl-5" scope="col">Coin</th>
               <th scope="col">Price</th>
               <th scope="col">Direct Vol</th>
               <th scope="col">High price 24h</th>
@@ -128,17 +144,24 @@ def market():
   """
 
   for idx, coin in enumerate(coinlist):
+      icon = open(icon_folder + coin + ".png", "rb")
+      icon_data = base64.b64encode(icon.read()).decode("utf-8")
+      icon.close()
+
       table_html += f"""<tr>
               <th scope="row">{idx + 1}</th>
-              <td>
-                  <a href='/?coin={coin}' target='_self'>{coin}</a>
+              <td class="text-left pl-5">
+                  <a href='/?coin={coin}' target='_self'>
+                    <img src='data:image/png;base64,{icon_data}' class='coin-icon'>
+                    <label>{coin}</label>
+                  </a>
               </td>
               <td>{price[idx]}</td>
               <td>{Directvol[idx]}</td>
               <td>{high[idx]}</td>
               <td>{low[idx]}</td>
-              <td>{change24h[idx]}</td>
-              <td>{change24hpct[idx]}</td>
+              {render_diff(change24h[idx], False)}
+              {render_diff(change24hpct[idx], True)}
           </tr>
       """
   table_html += """</tbody>
